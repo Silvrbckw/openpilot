@@ -96,15 +96,8 @@ class CarController:
     self.last_steer = apply_steer
     self.last_standstill = CS.out.standstill
 
-    can_sends = []
+    can_sends = [create_steer_command(self.packer, apply_steer, apply_steer_req)]
 
-    # *** control msgs ***
-    # print("steer {0} {1} {2} {3}".format(apply_steer, min_lim, max_lim, CS.steer_torque_motor)
-
-    # toyota can trace shows this message at 42Hz, with counter adding alternatively 1 and 2;
-    # sending it at 100Hz seem to allow a higher rate limit, as the rate limit seems imposed
-    # on consecutive messages
-    can_sends.append(create_steer_command(self.packer, apply_steer, apply_steer_req))
     if self.frame % 2 == 0 and self.CP.carFingerprint in TSS2_CAR:
       can_sends.append(create_lta_steer_command(self.packer, 0, 0, self.frame // 2))
 
@@ -114,11 +107,20 @@ class CarController:
     #   can_sends.append(create_lta_steer_command(self.packer, actuators.steeringAngleDeg, apply_steer_req, self.frame // 2))
 
     # we can spam can to cancel the system even if we are using lat only control
-    if (self.frame % 3 == 0 and self.CP.openpilotLongitudinalControl) or pcm_cancel_cmd:
+    if (self.frame % 3 == 0 and self.CP.openpilotLongitudinalControl):
       lead = hud_control.leadVisible or CS.out.vEgo < 12.  # at low speed we always assume the lead is present so ACC can be engaged
 
       # Lexus IS uses a different cancellation message
       if pcm_cancel_cmd and self.CP.carFingerprint in UNSUPPORTED_DSU_CAR:
+        can_sends.append(create_acc_cancel_command(self.packer))
+      else:
+        can_sends.append(create_accel_command(self.packer, pcm_accel_cmd, pcm_cancel_cmd, self.standstill_req, lead, CS.acc_type))
+        self.accel = pcm_accel_cmd
+    elif pcm_cancel_cmd:
+      lead = hud_control.leadVisible or CS.out.vEgo < 12.  # at low speed we always assume the lead is present so ACC can be engaged
+
+      # Lexus IS uses a different cancellation message
+      if self.CP.carFingerprint in UNSUPPORTED_DSU_CAR:
         can_sends.append(create_acc_cancel_command(self.packer))
       elif self.CP.openpilotLongitudinalControl:
         can_sends.append(create_accel_command(self.packer, pcm_accel_cmd, pcm_cancel_cmd, self.standstill_req, lead, CS.acc_type))
@@ -140,8 +142,8 @@ class CarController:
       steer_alert = hud_control.visualAlert in (VisualAlert.steerRequired, VisualAlert.ldw)
 
       send_ui = False
-      if ((fcw_alert or steer_alert) and not self.alert_active) or \
-         (not (fcw_alert or steer_alert) and self.alert_active):
+      if (((fcw_alert or steer_alert) and not self.alert_active)
+          or not fcw_alert and not steer_alert and self.alert_active):
         send_ui = True
         self.alert_active = not self.alert_active
       elif pcm_cancel_cmd:
@@ -157,10 +159,10 @@ class CarController:
         can_sends.append(create_fcw_command(self.packer, fcw_alert))
 
     # *** static msgs ***
-    for addr, cars, bus, fr_step, vl in STATIC_DSU_MSGS:
-      if self.frame % fr_step == 0 and self.CP.enableDsu and self.CP.carFingerprint in cars:
-        can_sends.append(make_can_msg(addr, vl, bus))
-
+    can_sends.extend(
+        make_can_msg(addr, vl, bus)
+        for addr, cars, bus, fr_step, vl in STATIC_DSU_MSGS if self.frame %
+        fr_step == 0 and self.CP.enableDsu and self.CP.carFingerprint in cars)
     new_actuators = actuators.copy()
     new_actuators.steer = apply_steer / CarControllerParams.STEER_MAX
     new_actuators.steerOutputCan = apply_steer

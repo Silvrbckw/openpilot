@@ -18,8 +18,6 @@ class CarController:
     actuators = CC.actuators
     pcm_cancel_cmd = CC.cruiseControl.cancel
 
-    can_sends = []
-
     # Temp disable steering on a hands_on_fault, and allow for user override
     hands_on_fault = CS.steer_warning == "EAC_ERROR_HANDS_ON" and CS.hands_on_level >= 3
     lkas_enabled = CC.latActive and not hands_on_fault
@@ -34,14 +32,16 @@ class CarController:
       apply_angle = CS.out.steeringAngleDeg
 
     self.apply_angle_last = apply_angle
-    can_sends.append(self.tesla_can.create_steering_control(apply_angle, lkas_enabled, self.frame))
-
+    can_sends = [
+        self.tesla_can.create_steering_control(apply_angle, lkas_enabled,
+                                               self.frame)
+    ]
     # Longitudinal control (in sync with stock message, about 40Hz)
     if self.CP.openpilotLongitudinalControl:
       target_accel = actuators.accel
       target_speed = max(CS.out.vEgo + (target_accel * CarControllerParams.ACCEL_TO_SPEED_MULTIPLIER), 0)
-      max_accel = 0 if target_accel < 0 else target_accel
-      min_accel = 0 if target_accel > 0 else target_accel
+      max_accel = max(target_accel, 0)
+      min_accel = min(target_accel, 0)
 
       while len(CS.das_control_counters) > 0:
         can_sends.extend(self.tesla_can.create_longitudinal_commands(CS.acc_state, target_speed, min_accel, max_accel, CS.das_control_counters.popleft()))
@@ -53,9 +53,17 @@ class CarController:
     if self.frame % 10 == 0 and pcm_cancel_cmd:
       # Spam every possible counter value, otherwise it might not be accepted
       for counter in range(16):
-        can_sends.append(self.tesla_can.create_action_request(CS.msg_stw_actn_req, pcm_cancel_cmd, CANBUS.chassis, counter))
-        can_sends.append(self.tesla_can.create_action_request(CS.msg_stw_actn_req, pcm_cancel_cmd, CANBUS.autopilot_chassis, counter))
-
+        can_sends.extend((
+            self.tesla_can.create_action_request(CS.msg_stw_actn_req,
+                                                 pcm_cancel_cmd, CANBUS.chassis,
+                                                 counter),
+            self.tesla_can.create_action_request(
+                CS.msg_stw_actn_req,
+                pcm_cancel_cmd,
+                CANBUS.autopilot_chassis,
+                counter,
+            ),
+        ))
     # TODO: HUD control
 
     new_actuators = actuators.copy()

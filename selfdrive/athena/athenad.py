@@ -105,9 +105,7 @@ cur_upload_items: Dict[int, Optional[UploadItem]] = {}
 
 
 def strip_bz2_extension(fn: str) -> str:
-  if fn.endswith('.bz2'):
-    return fn[:-4]
-  return fn
+  return fn[:-4] if fn.endswith('.bz2') else fn
 
 
 class AbortTransferException(Exception):
@@ -353,9 +351,8 @@ def scan_dir(path: str, prefix: str) -> List[str]:
         # if prefix is a partial file name, prefix with start with dir name
         if rel_path.startswith(prefix) or prefix.startswith(rel_path):
           files.extend(scan_dir(e.path, prefix))
-      else:
-        if rel_path.startswith(prefix):
-          files.append(rel_path)
+      elif rel_path.startswith(prefix):
+        files.append(rel_path)
   return files
 
 @dispatcher.add_method
@@ -446,7 +443,7 @@ def cancelUpload(upload_id: Union[str, List[str]]) -> Dict[str, Union[int, str]]
 
   uploading_ids = {item.id for item in list(upload_queue.queue)}
   cancelled_ids = uploading_ids.intersection(upload_id)
-  if len(cancelled_ids) == 0:
+  if not cancelled_ids:
     return {"success": 0, "error": "not found"}
 
   cancelled_uploads.update(cancelled_ids)
@@ -480,7 +477,7 @@ def startLocalProxy(global_end_event: threading.Event, remote_ws_uri: str, local
     dongle_id = Params().get("DongleId").decode('utf8')
     identity_token = Api(dongle_id).get_token()
     ws = create_connection(remote_ws_uri,
-                           cookie="jwt=" + identity_token,
+                           cookie=f"jwt={identity_token}",
                            enable_multithread=True)
 
     ssock, csock = socket.socketpair()
@@ -505,10 +502,10 @@ def startLocalProxy(global_end_event: threading.Event, remote_ws_uri: str, local
 
 @dispatcher.add_method
 def getPublicKey() -> Optional[str]:
-  if not os.path.isfile(PERSIST + '/comma/id_rsa.pub'):
+  if not os.path.isfile(f'{PERSIST}/comma/id_rsa.pub'):
     return None
 
-  with open(PERSIST + '/comma/id_rsa.pub') as f:
+  with open(f'{PERSIST}/comma/id_rsa.pub') as f:
     return f.read()
 
 
@@ -644,8 +641,11 @@ def stat_handler(end_event: threading.Event) -> None:
     curr_scan = sec_since_boot()
     try:
       if curr_scan - last_scan > 10:
-        stat_filenames = list(filter(lambda name: not name.startswith(tempfile.gettempprefix()), os.listdir(STATS_DIR)))
-        if len(stat_filenames) > 0:
+        if stat_filenames := list(
+            filter(
+                lambda name: not name.startswith(tempfile.gettempprefix()),
+                os.listdir(STATS_DIR),
+            )):
           stat_path = os.path.join(STATS_DIR, stat_filenames[0])
           with open(stat_path) as f:
             jsonrpc = {
@@ -763,17 +763,19 @@ def main():
   dongle_id = params.get("DongleId", encoding='utf-8')
   UploadQueueCache.initialize(upload_queue)
 
-  ws_uri = ATHENA_HOST + "/ws/v2/" + dongle_id
+  ws_uri = f"{ATHENA_HOST}/ws/v2/{dongle_id}"
   api = Api(dongle_id)
 
   conn_retries = 0
   while 1:
     try:
       cloudlog.event("athenad.main.connecting_ws", ws_uri=ws_uri)
-      ws = create_connection(ws_uri,
-                             cookie="jwt=" + api.get_token(),
-                             enable_multithread=True,
-                             timeout=30.0)
+      ws = create_connection(
+          ws_uri,
+          cookie=f"jwt={api.get_token()}",
+          enable_multithread=True,
+          timeout=30.0,
+      )
       cloudlog.event("athenad.main.connected_ws", ws_uri=ws_uri)
 
       conn_retries = 0

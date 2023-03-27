@@ -116,8 +116,8 @@ def get_can_signals(CP, gearbox_msg, main_on_sig_msg):
 
   # add gas interceptor reading if we are using it
   if CP.enableGasInterceptor:
-    signals.append(("INTERCEPTOR_GAS", "GAS_SENSOR"))
-    signals.append(("INTERCEPTOR_GAS2", "GAS_SENSOR"))
+    signals.extend((("INTERCEPTOR_GAS", "GAS_SENSOR"), ("INTERCEPTOR_GAS2",
+                                                        "GAS_SENSOR")))
     checks.append(("GAS_SENSOR", 50))
 
   if CP.openpilotLongitudinalControl:
@@ -274,9 +274,8 @@ class CarState(CarStateBase):
     ret.cruiseState.available = bool(cp.vl[self.main_on_sig_msg]["MAIN_ON"])
 
     # Gets rid of Pedal Grinding noise when brake is pressed at slow speeds for some models
-    if self.CP.carFingerprint in (CAR.PILOT, CAR.RIDGELINE):
-      if ret.brake > 0.1:
-        ret.brakePressed = True
+    if self.CP.carFingerprint in (CAR.PILOT, CAR.RIDGELINE) and ret.brake > 0.1:
+      ret.brakePressed = True
 
     if self.CP.carFingerprint in HONDA_BOSCH:
       # TODO: find the radarless AEB_STATUS bit and make sure ACCEL_COMMAND is correct to enable AEB alerts

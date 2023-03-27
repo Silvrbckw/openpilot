@@ -70,14 +70,11 @@ def create_friction_brake_command(packer, bus, apply_brake, idx, enabled, near_s
     mode = 0x9
 
   if apply_brake > 0:
-    mode = 0xa
-    if at_full_stop:
-      mode = 0xd
-
-    # TODO: this is to have GM bringing the car to complete stop,
-    # but currently it conflicts with OP controls, so turned off. Not set by all cars
-    #elif near_stop:
-    #  mode = 0xb
+    mode = 0xd if at_full_stop else 0xa
+      # TODO: this is to have GM bringing the car to complete stop,
+      # but currently it conflicts with OP controls, so turned off. Not set by all cars
+      #elif near_stop:
+      #  mode = 0xb
 
   brake = (0x1000 - apply_brake) & 0xfff
   checksum = (0x10000 - (mode << 12) - brake - idx) & 0xffff
@@ -149,15 +146,9 @@ def create_adas_headlights_status(packer, bus):
 
 def create_lka_icon_command(bus, active, critical, steer):
   if active and steer == 1:
-    if critical:
-      dat = b"\x50\xc0\x14"
-    else:
-      dat = b"\x50\x40\x18"
+    dat = b"\x50\xc0\x14" if critical else b"\x50\x40\x18"
   elif active:
-    if critical:
-      dat = b"\x40\xc0\x14"
-    else:
-      dat = b"\x40\x40\x18"
+    dat = b"\x40\xc0\x14" if critical else b"\x40\x40\x18"
   else:
     dat = b"\x00\x00\x00"
   return make_can_msg(0x104c006c, dat, bus)

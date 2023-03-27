@@ -39,7 +39,12 @@ def get_all_ecu_addrs(logcan: messaging.SubSocket, sendcan: messaging.PubSocket,
   addr_list = [0x700 + i for i in range(256)] + [0x18da00f1 + (i << 8) for i in range(256)]
   queries: Set[EcuAddrBusType] = {(addr, None, bus) for addr in addr_list}
   responses = queries
-  return get_ecu_addrs(logcan, sendcan, queries, responses, timeout=timeout, debug=debug)
+  return get_ecu_addrs(logcan,
+                       sendcan,
+                       responses,
+                       responses,
+                       timeout=timeout,
+                       debug=debug)
 
 
 def get_ecu_addrs(logcan: messaging.SubSocket, sendcan: messaging.PubSocket, queries: Set[EcuAddrBusType],

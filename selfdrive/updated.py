@@ -64,7 +64,7 @@ def set_consistent_flag(consistent: bool) -> None:
   consistent_file = Path(os.path.join(FINALIZED, ".overlay_consistent"))
   if consistent:
     consistent_file.touch()
-  elif not consistent:
+  else:
     consistent_file.unlink(missing_ok=True)
   os.sync()
 
@@ -338,11 +338,11 @@ class Updater:
     output = run(["git", "ls-remote", "--heads"], OVERLAY_MERGED)
 
     self.branches = defaultdict(lambda: None)
+    ls_remotes_re = r'(?P<commit_sha>\b[0-9a-f]{5,40}\b)(\s+)(refs\/heads\/)(?P<branch_name>.*$)'
     for line in output.split('\n'):
-      ls_remotes_re = r'(?P<commit_sha>\b[0-9a-f]{5,40}\b)(\s+)(refs\/heads\/)(?P<branch_name>.*$)'
       x = re.fullmatch(ls_remotes_re, line.strip())
-      if x is not None and x.group('branch_name') not in excluded_branches:
-        self.branches[x.group('branch_name')] = x.group('commit_sha')
+      if x is not None and x['branch_name'] not in excluded_branches:
+        self.branches[x['branch_name']] = x['commit_sha']
 
     cur_branch = self.get_branch(OVERLAY_MERGED)
     cur_commit = self.get_commit_hash(OVERLAY_MERGED)

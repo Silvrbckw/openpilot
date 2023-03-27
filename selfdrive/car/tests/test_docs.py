@@ -35,7 +35,10 @@ class TestCarDocs(unittest.TestCase):
     all_car_info_platforms = get_interface_attr("CAR_INFO", combine_brands=True).keys()
     for platform in sorted(interfaces.keys()):
       with self.subTest(platform=platform):
-        self.assertTrue(platform in all_car_info_platforms, "Platform: {} doesn't exist in CarInfo".format(platform))
+        self.assertTrue(
+            platform in all_car_info_platforms,
+            f"Platform: {platform} doesn't exist in CarInfo",
+        )
 
   def test_naming_conventions(self):
     # Asserts market-standard car naming conventions by brand

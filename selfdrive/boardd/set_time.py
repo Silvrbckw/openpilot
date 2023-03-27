@@ -8,7 +8,7 @@ REQUEST_IN = usb1.ENDPOINT_IN | usb1.TYPE_VENDOR | usb1.RECIPIENT_DEVICE
 MIN_DATE = datetime.datetime(year=2021, month=4, day=1)
 
 def set_time(logger):
-  sys_time = datetime.datetime.today()
+  sys_time = datetime.datetime.now()
   if sys_time > MIN_DATE:
     logger.info("System time valid")
     return

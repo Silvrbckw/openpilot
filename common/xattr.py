@@ -37,7 +37,7 @@ def listxattr(path, size=128) -> List[Any]:
   if l == -1:
     raise OSError(ffi.errno, f"{os.strerror(ffi.errno)}: listxattr({path}, {size})")
   # attrs is b'\0' delimited values (so chop off trailing empty item)
-  return [a.decode() for a in ffi.buffer(attrs)[:l].split(b"\0")[0:-1]]
+  return [a.decode() for a in ffi.buffer(attrs)[:l].split(b"\0")[:-1]]
 
 def removexattr(path, name) -> None:
   path = path.encode()

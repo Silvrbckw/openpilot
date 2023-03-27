@@ -79,9 +79,7 @@ class CarController:
       torque_r = int(np.clip(self.torque_r_filtered, -MAX_TORQUE, MAX_TORQUE))
       torque_l = int(np.clip(self.torque_l_filtered, -MAX_TORQUE, MAX_TORQUE))
 
-    can_sends = []
-    can_sends.append(bodycan.create_control(self.packer, torque_l, torque_r))
-
+    can_sends = [bodycan.create_control(self.packer, torque_l, torque_r)]
     new_actuators = CC.actuators.copy()
     new_actuators.accel = torque_l
     new_actuators.steer = torque_r

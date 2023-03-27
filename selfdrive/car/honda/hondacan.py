@@ -14,11 +14,7 @@ def get_pt_bus(car_fingerprint):
 
 def get_lkas_cmd_bus(car_fingerprint, radar_disabled=False):
   no_radar = car_fingerprint in HONDA_BOSCH_RADARLESS
-  if radar_disabled or no_radar:
-    # when radar is disabled, steering commands are sent directly to powertrain bus
-    return get_pt_bus(car_fingerprint)
-  # normally steering commands are sent to radar, which forwards them to powertrain bus
-  return 0
+  return get_pt_bus(car_fingerprint) if radar_disabled or no_radar else 0
 
 
 def create_brake_command(packer, apply_brake, pump_on, pcm_override, pcm_cancel_cmd, fcw, car_fingerprint, stock_brake):
@@ -47,7 +43,6 @@ def create_brake_command(packer, apply_brake, pump_on, pcm_override, pcm_cancel_
 
 
 def create_acc_commands(packer, enabled, active, accel, gas, stopping, car_fingerprint):
-  commands = []
   bus = get_pt_bus(car_fingerprint)
   min_gas_accel = CarControllerParams.BOSCH_GAS_LOOKUP_BP[0]
 
@@ -68,8 +63,7 @@ def create_acc_commands(packer, enabled, active, accel, gas, stopping, car_finge
     "STANDSTILL": standstill,
     "STANDSTILL_RELEASE": standstill_release,
   }
-  commands.append(packer.make_can_msg("ACC_CONTROL", bus, acc_control_values))
-
+  commands = [packer.make_can_msg("ACC_CONTROL", bus, acc_control_values)]
   acc_control_on_values = {
     "SET_TO_3": 0x03,
     "CONTROL_ON": enabled,
@@ -149,8 +143,10 @@ def create_ui_commands(packer, CP, enabled, pcm_speed, hud, is_metric, acc_hud, 
     lkas_hud_values['SET_ME_X48'] = 0x48
 
   if CP.flags & HondaFlags.BOSCH_EXT_HUD and not CP.openpilotLongitudinalControl:
-    commands.append(packer.make_can_msg('LKAS_HUD_A', bus_lkas, lkas_hud_values))
-    commands.append(packer.make_can_msg('LKAS_HUD_B', bus_lkas, lkas_hud_values))
+    commands.extend((
+        packer.make_can_msg('LKAS_HUD_A', bus_lkas, lkas_hud_values),
+        packer.make_can_msg('LKAS_HUD_B', bus_lkas, lkas_hud_values),
+    ))
   else:
     commands.append(packer.make_can_msg('LKAS_HUD', bus_lkas, lkas_hud_values))
 

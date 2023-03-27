@@ -74,9 +74,10 @@ if __name__ == "__main__":
 
   print(f"\n\n---- Lateral limit report ({len(CAR_MODELS)} cars) ----\n")
 
-  max_car_model_len = max([len(car_model) for car_model in car_model_jerks])
+  max_car_model_len = max(len(car_model) for car_model in car_model_jerks)
   for car_model, _jerks in sorted(car_model_jerks.items(), key=lambda i: i[1]['up_jerk'], reverse=True):
-    violation = any([_jerk >= MAX_LAT_JERK + MAX_LAT_JERK_TOLERANCE for _jerk in _jerks.values()])
+    violation = any(_jerk >= MAX_LAT_JERK + MAX_LAT_JERK_TOLERANCE
+                    for _jerk in _jerks.values())
     violation_str = " - VIOLATION" if violation else ""
 
     print(f"{car_model:{max_car_model_len}} - up jerk: {round(_jerks['up_jerk'], 2):5} m/s^3, down jerk: {round(_jerks['down_jerk'], 2):5} m/s^3{violation_str}")

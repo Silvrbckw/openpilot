@@ -25,16 +25,13 @@ class CarState(CarStateBase):
 
     if self.CP.carFingerprint in (CAR.ROGUE, CAR.XTRAIL, CAR.ALTIMA):
       ret.gas = cp.vl["GAS_PEDAL"]["GAS_PEDAL"]
+      ret.brakePressed = bool(cp.vl["DOORS_LIGHTS"]["USER_BRAKE_PRESSED"])
     elif self.CP.carFingerprint in (CAR.LEAF, CAR.LEAF_IC):
       ret.gas = cp.vl["CRUISE_THROTTLE"]["GAS_PEDAL"]
 
-    ret.gasPressed = bool(ret.gas > 3)
-
-    if self.CP.carFingerprint in (CAR.ROGUE, CAR.XTRAIL, CAR.ALTIMA):
-      ret.brakePressed = bool(cp.vl["DOORS_LIGHTS"]["USER_BRAKE_PRESSED"])
-    elif self.CP.carFingerprint in (CAR.LEAF, CAR.LEAF_IC):
       ret.brakePressed = bool(cp.vl["CRUISE_THROTTLE"]["USER_BRAKE_PRESSED"])
 
+    ret.gasPressed = ret.gas > 3
     ret.wheelSpeeds = self.get_wheel_speeds(
       cp.vl["WHEEL_SPEEDS_FRONT"]["WHEEL_SPEED_FL"],
       cp.vl["WHEEL_SPEEDS_FRONT"]["WHEEL_SPEED_FR"],
@@ -84,7 +81,8 @@ class CarState(CarStateBase):
 
     self.steeringTorqueSamples.append(ret.steeringTorque)
     # Filtering driver torque to prevent steeringPressed false positives
-    ret.steeringPressed = bool(abs(sum(self.steeringTorqueSamples) / TORQUE_SAMPLES) > CarControllerParams.STEER_THRESHOLD)
+    ret.steeringPressed = (abs(sum(self.steeringTorqueSamples) / TORQUE_SAMPLES)
+                           > CarControllerParams.STEER_THRESHOLD)
 
     ret.steeringAngleDeg = cp.vl["STEER_ANGLE_SENSOR"]["STEER_ANGLE"]
 

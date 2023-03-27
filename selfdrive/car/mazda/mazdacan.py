@@ -39,11 +39,7 @@ def create_steering_control(packer, car_fingerprint, frame, apply_steer, lkas):
     csum = csum + 15
 
   if csum < 0:
-    if csum < -256:
-      csum = csum + 512
-    else:
-      csum = csum + 256
-
+    csum = csum + 512 if csum < -256 else csum + 256
   csum = csum % 256
 
   if car_fingerprint in GEN1:
@@ -64,27 +60,25 @@ def create_steering_control(packer, car_fingerprint, frame, apply_steer, lkas):
 
 
 def create_alert_command(packer, cam_msg: dict, ldw: bool, steer_required: bool):
-  values = copy.copy(cam_msg)
-  values.update({
-    # TODO: what's the difference between all these? do we need to send all?
-    "HANDS_WARN_3_BITS": 0b111 if steer_required else 0,
-    "HANDS_ON_STEER_WARN": steer_required,
-    "HANDS_ON_STEER_WARN_2": steer_required,
-
-    # TODO: right lane works, left doesn't
-    # TODO: need to do something about L/R
-    "LDW_WARN_LL": 0,
-    "LDW_WARN_RL": 0,
-  })
+  values = copy.copy(cam_msg) | {
+      # TODO: what's the difference between all these? do we need to send all?
+      "HANDS_WARN_3_BITS": 0b111 if steer_required else 0,
+      "HANDS_ON_STEER_WARN": steer_required,
+      "HANDS_ON_STEER_WARN_2": steer_required,
+      # TODO: right lane works, left doesn't
+      # TODO: need to do something about L/R
+      "LDW_WARN_LL": 0,
+      "LDW_WARN_RL": 0,
+  }
   return packer.make_can_msg("CAM_LANEINFO", 0, values)
 
 
 def create_button_cmd(packer, car_fingerprint, counter, button):
 
-  can = int(button == Buttons.CANCEL)
-  res = int(button == Buttons.RESUME)
-
   if car_fingerprint in GEN1:
+    can = int(button == Buttons.CANCEL)
+    res = int(button == Buttons.RESUME)
+
     values = {
       "CAN_OFF": can,
       "CAN_OFF_INV": (can + 1) % 2,

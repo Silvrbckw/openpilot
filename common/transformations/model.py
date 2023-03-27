@@ -79,8 +79,7 @@ def get_warp_matrix(rpy_calib, wide_cam=False, big_model=False, tici=True):
     calib_from_model = np.linalg.inv(medmodel_from_calib)
   device_from_calib = rot_from_euler(rpy_calib)
   camera_from_calib = intrinsics.dot(view_frame_from_device_frame.dot(device_from_calib))
-  warp_matrix = camera_from_calib.dot(calib_from_model)
-  return warp_matrix
+  return camera_from_calib.dot(calib_from_model)
 
 
 ### This is old, just for debugging

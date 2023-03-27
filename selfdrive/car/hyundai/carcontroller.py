@@ -133,44 +133,43 @@ class CarController:
           can_sends.append(hyundaicanfd.create_acc_control(self.packer, self.CP, CC.enabled, self.accel_last, accel, stopping, CC.cruiseControl.override,
                                                            set_speed_in_units))
           self.accel_last = accel
-      else:
-        # button presses
-        if (self.frame - self.last_button_frame) * DT_CTRL > 0.25:
+      elif (self.frame - self.last_button_frame) * DT_CTRL > 0.25:
           # cruise cancel
-          if CC.cruiseControl.cancel:
-            if self.CP.flags & HyundaiFlags.CANFD_ALT_BUTTONS:
-              can_sends.append(hyundaicanfd.create_acc_cancel(self.packer, self.CP, CS.cruise_info))
-              self.last_button_frame = self.frame
-            else:
-              for _ in range(20):
-                can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, CS.buttons_counter+1, Buttons.CANCEL))
-              self.last_button_frame = self.frame
-
-          # cruise standstill resume
-          elif CC.cruiseControl.resume:
-            if self.CP.flags & HyundaiFlags.CANFD_ALT_BUTTONS:
-              # TODO: resume for alt button cars
-              pass
-            else:
-              for _ in range(20):
-                can_sends.append(hyundaicanfd.create_buttons(self.packer, self.CP, CS.buttons_counter+1, Buttons.RES_ACCEL))
-              self.last_button_frame = self.frame
+        if CC.cruiseControl.cancel:
+          if self.CP.flags & HyundaiFlags.CANFD_ALT_BUTTONS:
+            can_sends.append(hyundaicanfd.create_acc_cancel(self.packer, self.CP, CS.cruise_info))
+          else:
+            can_sends.extend(
+                hyundaicanfd.create_buttons(
+                    self.packer, self.CP, CS.buttons_counter + 1, Buttons.CANCEL)
+                for _ in range(20))
+          self.last_button_frame = self.frame
+        elif CC.cruiseControl.resume:
+          if not self.CP.flags & HyundaiFlags.CANFD_ALT_BUTTONS:
+            can_sends.extend(
+                hyundaicanfd.create_buttons(
+                    self.packer,
+                    self.CP,
+                    CS.buttons_counter + 1,
+                    Buttons.RES_ACCEL,
+                ) for _ in range(20))
+            self.last_button_frame = self.frame
     else:
       can_sends.append(hyundaican.create_lkas11(self.packer, self.frame, self.car_fingerprint, apply_steer, lat_active,
                                                 torque_fault, CS.lkas11, sys_warning, sys_state, CC.enabled,
                                                 hud_control.leftLaneVisible, hud_control.rightLaneVisible,
                                                 left_lane_warning, right_lane_warning))
 
-      if not self.CP.openpilotLongitudinalControl:
-        if CC.cruiseControl.cancel:
+      if CC.cruiseControl.cancel:
+        if not self.CP.openpilotLongitudinalControl:
           can_sends.append(hyundaican.create_clu11(self.packer, self.frame, CS.clu11, Buttons.CANCEL, self.CP.carFingerprint))
-        elif CC.cruiseControl.resume:
-          # send resume at a max freq of 10Hz
-          if (self.frame - self.last_button_frame) * DT_CTRL > 0.1:
-            # send 25 messages at a time to increases the likelihood of resume being accepted
-            can_sends.extend([hyundaican.create_clu11(self.packer, self.frame, CS.clu11, Buttons.RES_ACCEL, self.CP.carFingerprint)] * 25)
-            if (self.frame - self.last_button_frame) * DT_CTRL >= 0.15:
-              self.last_button_frame = self.frame
+      elif CC.cruiseControl.resume:
+        if (not self.CP.openpilotLongitudinalControl
+            and (self.frame - self.last_button_frame) * DT_CTRL > 0.1):
+          # send 25 messages at a time to increases the likelihood of resume being accepted
+          can_sends.extend([hyundaican.create_clu11(self.packer, self.frame, CS.clu11, Buttons.RES_ACCEL, self.CP.carFingerprint)] * 25)
+          if (self.frame - self.last_button_frame) * DT_CTRL >= 0.15:
+            self.last_button_frame = self.frame
 
       if self.frame % 2 == 0 and self.CP.openpilotLongitudinalControl:
         # TODO: unclear if this is needed

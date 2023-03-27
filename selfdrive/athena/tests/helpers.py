@@ -27,13 +27,9 @@ class EchoSocket():
     conn.settimeout(5.0)
 
     try:
-      while True:
-        data = conn.recv(4096)
-        if data:
-          print(f'EchoSocket got {data}')
-          conn.sendall(data)
-        else:
-          break
+      while data := conn.recv(4096):
+        print(f'EchoSocket got {data}')
+        conn.sendall(data)
     finally:
       conn.shutdown(0)
       conn.close()

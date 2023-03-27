@@ -32,13 +32,25 @@ class CarController:
 
     ### acc buttons ###
     if CC.cruiseControl.cancel:
-      can_sends.append(create_button_msg(self.packer, CS.buttons_stock_values, cancel=True))
-      can_sends.append(create_button_msg(self.packer, CS.buttons_stock_values, cancel=True, bus=CANBUS.main))
+      can_sends.extend((
+          create_button_msg(self.packer, CS.buttons_stock_values, cancel=True),
+          create_button_msg(
+              self.packer,
+              CS.buttons_stock_values,
+              cancel=True,
+              bus=CANBUS.main,
+          ),
+      ))
     elif CC.cruiseControl.resume and (self.frame % CarControllerParams.BUTTONS_STEP) == 0:
-      can_sends.append(create_button_msg(self.packer, CS.buttons_stock_values, resume=True))
-      can_sends.append(create_button_msg(self.packer, CS.buttons_stock_values, resume=True, bus=CANBUS.main))
-    # if stock lane centering isn't off, send a button press to toggle it off
-    # the stock system checks for steering pressed, and eventually disengages cruise control
+      can_sends.extend((
+          create_button_msg(self.packer, CS.buttons_stock_values, resume=True),
+          create_button_msg(
+              self.packer,
+              CS.buttons_stock_values,
+              resume=True,
+              bus=CANBUS.main,
+          ),
+      ))
     elif CS.acc_tja_status_stock_values["Tja_D_Stat"] != 0 and (self.frame % CarControllerParams.ACC_UI_STEP) == 0:
       can_sends.append(create_button_msg(self.packer, CS.buttons_stock_values, tja_toggle=True))
 

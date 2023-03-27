@@ -97,8 +97,6 @@ def create_lfahda_mfc(packer, enabled, hda_set_speed=0):
   return packer.make_can_msg("LFAHDA_MFC", 0, values)
 
 def create_acc_commands(packer, enabled, accel, upper_jerk, idx, lead_visible, set_speed, stopping, long_override):
-  commands = []
-
   scc11_values = {
     "MainMode_ACC": 1,
     "TauGapSet": 4,
@@ -110,8 +108,7 @@ def create_acc_commands(packer, enabled, accel, upper_jerk, idx, lead_visible, s
     "ACC_ObjRelSpd": 0,
     "ACC_ObjDist": 1, # close lead makes controls tighter
     }
-  commands.append(packer.make_can_msg("SCC11", 0, scc11_values))
-
+  commands = [packer.make_can_msg("SCC11", 0, scc11_values)]
   scc12_values = {
     "ACCMode": 2 if enabled and long_override else 1 if enabled else 0,
     "StopReq": 1 if stopping else 0,
@@ -149,15 +146,12 @@ def create_acc_commands(packer, enabled, accel, upper_jerk, idx, lead_visible, s
   return commands
 
 def create_acc_opt(packer):
-  commands = []
-
   scc13_values = {
     "SCCDrvModeRValue": 2,
     "SCC_Equip": 1,
     "Lead_Veh_Dep_Alert_USM": 2,
   }
-  commands.append(packer.make_can_msg("SCC13", 0, scc13_values))
-
+  commands = [packer.make_can_msg("SCC13", 0, scc13_values)]
   fca12_values = {
     "FCA_DrvSetState": 2,
     "FCA_USM": 1, # AEB disabled

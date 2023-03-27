@@ -49,8 +49,6 @@ class CarInterface(CarInterfaceBase):
     ret.carName = "gm"
     ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.gm)]
     ret.autoResumeSng = False
-    use_off_car_defaults = len(fingerprint[0]) == 0  # Pick sensible carParams during offline doc generation/CI jobs
-
     if candidate in EV_CAR:
       ret.transmissionType = TransmissionType.direct
     else:
@@ -84,9 +82,11 @@ class CarInterface(CarInterfaceBase):
         ret.openpilotLongitudinalControl = True
         ret.safetyConfigs[0].safetyParam |= Panda.FLAG_GM_HW_CAM_LONG
 
-    else:  # ASCM, OBD-II harness
+    else:# ASCM, OBD-II harness
       ret.openpilotLongitudinalControl = True
       ret.networkLocation = NetworkLocation.gateway
+      use_off_car_defaults = len(fingerprint[0]) == 0  # Pick sensible carParams during offline doc generation/CI jobs
+
       ret.radarUnavailable = RADAR_HEADER_MSG not in fingerprint[CanBus.OBSTACLE] and not use_off_car_defaults
       ret.pcmCruise = False  # stock non-adaptive cruise control is kept off
       # supports stop and go, but initial engage must (conservatively) be above 18mph
@@ -101,7 +101,7 @@ class CarInterface(CarInterfaceBase):
     # These cars likely still work fine. Once a user confirms each car works and a test route is
     # added to selfdrive/car/tests/routes.py, we can remove it from this list.
     ret.dashcamOnly = candidate in {CAR.CADILLAC_ATS, CAR.HOLDEN_ASTRA, CAR.MALIBU, CAR.BUICK_REGAL, CAR.EQUINOX} or \
-                      (ret.networkLocation == NetworkLocation.gateway and ret.radarUnavailable)
+                        (ret.networkLocation == NetworkLocation.gateway and ret.radarUnavailable)
 
     # Start with a baseline tuning for all GM vehicles. Override tuning as needed in each model section below.
     ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
@@ -222,7 +222,8 @@ class CarInterface(CarInterfaceBase):
   def _update(self, c):
     ret = self.CS.update(self.cp, self.cp_cam, self.cp_loopback)
 
-    if self.CS.cruise_buttons != self.CS.prev_cruise_buttons and self.CS.prev_cruise_buttons != CruiseButtons.INIT:
+    if (self.CS.cruise_buttons != self.CS.prev_cruise_buttons !=
+        CruiseButtons.INIT):
       buttonEvents = [create_button_event(self.CS.cruise_buttons, self.CS.prev_cruise_buttons, BUTTONS_DICT, CruiseButtons.UNPRESS)]
       # Handle ACCButtons changing buttons mid-press
       if self.CS.cruise_buttons != CruiseButtons.UNPRESS and self.CS.prev_cruise_buttons != CruiseButtons.UNPRESS:
@@ -234,9 +235,10 @@ class CarInterface(CarInterfaceBase):
     events = self.create_common_events(ret, extra_gears=[GearShifter.sport, GearShifter.low,
                                                          GearShifter.eco, GearShifter.manumatic],
                                        pcm_enable=self.CP.pcmCruise, enable_buttons=(ButtonType.decelCruise,))
-    if not self.CP.pcmCruise:
-      if any(b.type == ButtonType.accelCruise and b.pressed for b in ret.buttonEvents):
-        events.add(EventName.buttonEnable)
+    if not self.CP.pcmCruise and any(
+        b.type == ButtonType.accelCruise and b.pressed
+        for b in ret.buttonEvents):
+      events.add(EventName.buttonEnable)
 
     # Enabling at a standstill with brake is allowed
     # TODO: verify 17 Volt can enable for the first time at a stop and allow for all GMs

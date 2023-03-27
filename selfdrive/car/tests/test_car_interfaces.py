@@ -14,11 +14,7 @@ class TestCarInterfaces(unittest.TestCase):
 
   @parameterized.expand([(car,) for car in all_known_cars()])
   def test_car_interfaces(self, car_name):
-    if car_name in FINGERPRINTS:
-      fingerprint = FINGERPRINTS[car_name][0]
-    else:
-      fingerprint = {}
-
+    fingerprint = FINGERPRINTS[car_name][0] if car_name in FINGERPRINTS else {}
     CarInterface, CarController, CarState = interfaces[car_name]
     fingerprints = gen_empty_fingerprint()
     fingerprints.update({k: fingerprint for k in fingerprints.keys()})
@@ -78,7 +74,7 @@ class TestCarInterfaces(unittest.TestCase):
     # Run radar interface once
     radar_interface.update([])
     if not car_params.radarUnavailable and radar_interface.rcp is not None and \
-       hasattr(radar_interface, '_update') and hasattr(radar_interface, 'trigger_msg'):
+         hasattr(radar_interface, '_update') and hasattr(radar_interface, 'trigger_msg'):
       radar_interface._update([radar_interface.trigger_msg])
 
 if __name__ == "__main__":

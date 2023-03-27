@@ -155,7 +155,7 @@ class CarInfo:
     # harness column
     harness_col = self.harness.value
     if self.harness is not Harness.none:
-      model_years = self.model + (' ' + self.years if self.years else '')
+      model_years = self.model + (f' {self.years}' if self.years else '')
       harness_col = f'<a href="https://comma.ai/shop/comma-three.html?make={self.make}&model={model_years}">{harness_col}</a>'
 
     self.row = {
