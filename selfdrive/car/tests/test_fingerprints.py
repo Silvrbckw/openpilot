@@ -17,7 +17,7 @@ def _get_fingerprints():
   # - keys are all the car names that which we have a fingerprint dict for
   # - values are dicts of fingeprints for each trim
   fingerprints = {}
-  for car_folder in [x[0] for x in os.walk(BASEDIR + '/selfdrive/car')]:
+  for car_folder in [x[0] for x in os.walk(f'{BASEDIR}/selfdrive/car')]:
     car_name = car_folder.split('/')[-1]
     try:
       fingerprints[car_name] = __import__(f'selfdrive.car.{car_name}.values', fromlist=['FINGERPRINTS']).FINGERPRINTS
@@ -34,16 +34,10 @@ def check_fingerprint_consistency(f1, f2):
 
   max_msg = 1800
 
-  is_f1_in_f2 = True
-  for k in f1:
-    if (k not in f2 or f1[k] != f2[k]) and k < max_msg:
-      is_f1_in_f2 = False
-
-  is_f2_in_f1 = True
-  for k in f2:
-    if (k not in f1 or f2[k] != f1[k]) and k < max_msg:
-      is_f2_in_f1 = False
-
+  is_f1_in_f2 = not any(
+      (k not in f2 or f1[k] != f2[k]) and k < max_msg for k in f1)
+  is_f2_in_f1 = not any(
+      (k not in f1 or f2[k] != f1[k]) and k < max_msg for k in f2)
   return not is_f1_in_f2 and not is_f2_in_f1
 
 
@@ -70,7 +64,7 @@ if __name__ == "__main__":
   for brand in fingerprints:
     for car in fingerprints[brand]:
       fingerprints_flat += fingerprints[brand][car]
-      for i in range(len(fingerprints[brand][car])):
+      for _ in range(len(fingerprints[brand][car])):
         car_names.append(car)
         brand_names.append(brand)
 

@@ -55,9 +55,9 @@ class TestCarModelBase(unittest.TestCase):
     if cls.__name__ == 'TestCarModel' or cls.__name__.endswith('Base'):
       raise unittest.SkipTest
 
-    if 'FILTER' in os.environ:
-      if not cls.car_model.startswith(tuple(os.environ.get('FILTER').split(','))):
-        raise unittest.SkipTest
+    if 'FILTER' in os.environ and not cls.car_model.startswith(
+        tuple(os.environ.get('FILTER').split(','))):
+      raise unittest.SkipTest
 
     if cls.test_route is None:
       if cls.car_model in non_tested_cars:
@@ -244,9 +244,10 @@ class TestCarModelBase(unittest.TestCase):
 
       # TODO: remove this exception once this mismatch is resolved
       brake_pressed = CS.brakePressed
-      if CS.brakePressed and not self.safety.get_brake_pressed_prev():
-        if self.CP.carFingerprint in (HONDA.PILOT, HONDA.RIDGELINE) and CS.brake > 0.05:
-          brake_pressed = False
+      if (CS.brakePressed and not self.safety.get_brake_pressed_prev()
+          and self.CP.carFingerprint in (HONDA.PILOT, HONDA.RIDGELINE)
+          and CS.brake > 0.05):
+        brake_pressed = False
       checks['brakePressed'] += brake_pressed != self.safety.get_brake_pressed_prev()
       checks['regenBraking'] += CS.regenBraking != self.safety.get_regen_braking_prev()
 

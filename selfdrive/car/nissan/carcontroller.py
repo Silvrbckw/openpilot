@@ -35,17 +35,18 @@ class CarController:
       apply_angle = apply_std_steer_angle_limits(actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgo, CarControllerParams)
 
       # Max torque from driver before EPS will give up and not apply torque
-      if not bool(CS.out.steeringPressed):
-        self.lkas_max_torque = CarControllerParams.LKAS_MAX_TORQUE
-      else:
-        # Scale max torque based on how much torque the driver is applying to the wheel
-        self.lkas_max_torque = max(
-          # Scale max torque down to half LKAX_MAX_TORQUE as a minimum
-          CarControllerParams.LKAS_MAX_TORQUE * 0.5,
-          # Start scaling torque at STEER_THRESHOLD
-          CarControllerParams.LKAS_MAX_TORQUE - 0.6 * max(0, abs(CS.out.steeringTorque) - CarControllerParams.STEER_THRESHOLD)
-        )
-
+      self.lkas_max_torque = (
+          max(
+              # Scale max torque down to half LKAX_MAX_TORQUE as a minimum
+              CarControllerParams.LKAS_MAX_TORQUE * 0.5,
+              # Start scaling torque at STEER_THRESHOLD
+              CarControllerParams.LKAS_MAX_TORQUE - 0.6 * max(
+                  0,
+                  abs(CS.out.steeringTorque) -
+                  CarControllerParams.STEER_THRESHOLD,
+              ),
+          ) if bool(CS.out.steeringPressed) else
+          CarControllerParams.LKAS_MAX_TORQUE)
     else:
       apply_angle = CS.out.steeringAngleDeg
       self.lkas_max_torque = 0

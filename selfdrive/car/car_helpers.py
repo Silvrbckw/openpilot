@@ -23,11 +23,8 @@ def get_startup_event(car_recognized, controller_available, fw_seen):
     event = EventName.startupMaster
 
   if not car_recognized:
-    if fw_seen:
-      event = EventName.startupNoCar
-    else:
-      event = EventName.startupNoFw
-  elif car_recognized and not controller_available:
+    event = EventName.startupNoCar if fw_seen else EventName.startupNoFw
+  elif not controller_available:
     event = EventName.startupNoControl
   return event
 
@@ -43,15 +40,18 @@ def load_interfaces(brand_names):
   ret = {}
   for brand_name in brand_names:
     path = f'selfdrive.car.{brand_name}'
-    CarInterface = __import__(path + '.interface', fromlist=['CarInterface']).CarInterface
+    CarInterface = __import__(f'{path}.interface',
+                              fromlist=['CarInterface']).CarInterface
 
-    if os.path.exists(BASEDIR + '/' + path.replace('.', '/') + '/carstate.py'):
-      CarState = __import__(path + '.carstate', fromlist=['CarState']).CarState
+    if os.path.exists(f'{BASEDIR}/' + path.replace('.', '/') + '/carstate.py'):
+      CarState = __import__(f'{path}.carstate', fromlist=['CarState']).CarState
     else:
       CarState = None
 
-    if os.path.exists(BASEDIR + '/' + path.replace('.', '/') + '/carcontroller.py'):
-      CarController = __import__(path + '.carcontroller', fromlist=['CarController']).CarController
+    if os.path.exists(f'{BASEDIR}/' + path.replace('.', '/') +
+                      '/carcontroller.py'):
+      CarController = __import__(f'{path}.carcontroller',
+                                 fromlist=['CarController']).CarController
     else:
       CarController = None
 
@@ -83,9 +83,6 @@ def fingerprint(logcan, sendcan, num_pandas):
   params = Params()
 
   if not skip_fw_query:
-    # Vin query only reliably works through OBDII
-    bus = 1
-
     cached_params = params.get("CarParamsCache")
     if cached_params is not None:
       cached_params = car.CarParams.from_bytes(cached_params)
@@ -100,6 +97,9 @@ def fingerprint(logcan, sendcan, num_pandas):
     else:
       cloudlog.warning("Getting VIN & FW versions")
       set_obd_multiplexing(params, True)
+      # Vin query only reliably works through OBDII
+      bus = 1
+
       vin_rx_addr, vin = get_vin(logcan, sendcan, bus)
       ecu_rx_addrs = get_present_ecus(logcan, sendcan, num_pandas=num_pandas)
       car_fw = get_fw_versions_ordered(logcan, sendcan, ecu_rx_addrs, num_pandas=num_pandas)

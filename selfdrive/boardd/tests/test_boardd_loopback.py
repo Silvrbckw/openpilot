@@ -87,7 +87,7 @@ class TestBoardd(unittest.TestCase):
           break
 
       # if a set isn't empty, messages got dropped
-      for bus in sent_msgs.keys():
+      for bus in sent_msgs:
         assert not len(sent_msgs[bus]), f"loop {i}: bus {bus} missing {len(sent_msgs[bus])} messages"
 
 

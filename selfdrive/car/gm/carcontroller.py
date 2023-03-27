@@ -104,10 +104,26 @@ class CarController:
           at_full_stop = at_full_stop and actuators.longControlState == LongCtrlState.stopping
           friction_brake_bus = CanBus.POWERTRAIN
 
-        # GasRegenCmdActive needs to be 1 to avoid cruise faults. It describes the ACC state, not actuation
-        can_sends.append(gmcan.create_gas_regen_command(self.packer_pt, CanBus.POWERTRAIN, self.apply_gas, idx, CC.enabled, at_full_stop))
-        can_sends.append(gmcan.create_friction_brake_command(self.packer_ch, friction_brake_bus, self.apply_brake, idx, CC.enabled, near_stop, at_full_stop, self.CP))
-
+        can_sends.extend((
+            gmcan.create_gas_regen_command(
+                self.packer_pt,
+                CanBus.POWERTRAIN,
+                self.apply_gas,
+                idx,
+                CC.enabled,
+                at_full_stop,
+            ),
+            gmcan.create_friction_brake_command(
+                self.packer_ch,
+                friction_brake_bus,
+                self.apply_brake,
+                idx,
+                CC.enabled,
+                near_stop,
+                at_full_stop,
+                self.CP,
+            ),
+        ))
         # Send dashboard UI commands (ACC status)
         send_fcw = hud_alert == VisualAlert.fcw
         can_sends.append(gmcan.create_acc_dashboard_command(self.packer_pt, CanBus.POWERTRAIN, CC.enabled,
@@ -120,15 +136,21 @@ class CarController:
         time_and_headlights_step = 10
         if self.frame % time_and_headlights_step == 0:
           idx = (self.frame // time_and_headlights_step) % 4
-          can_sends.append(gmcan.create_adas_time_status(CanBus.OBSTACLE, int((tt - self.start_time) * 60), idx))
-          can_sends.append(gmcan.create_adas_headlights_status(self.packer_obj, CanBus.OBSTACLE))
-
+          can_sends.extend((
+              gmcan.create_adas_time_status(CanBus.OBSTACLE,
+                                            int((tt - self.start_time) * 60),
+                                            idx),
+              gmcan.create_adas_headlights_status(self.packer_obj,
+                                                  CanBus.OBSTACLE),
+          ))
         speed_and_accelerometer_step = 2
         if self.frame % speed_and_accelerometer_step == 0:
           idx = (self.frame // speed_and_accelerometer_step) % 4
-          can_sends.append(gmcan.create_adas_steering_status(CanBus.OBSTACLE, idx))
-          can_sends.append(gmcan.create_adas_accelerometer_speed_status(CanBus.OBSTACLE, CS.out.vEgo, idx))
-
+          can_sends.extend((
+              gmcan.create_adas_steering_status(CanBus.OBSTACLE, idx),
+              gmcan.create_adas_accelerometer_speed_status(CanBus.OBSTACLE,
+                                                           CS.out.vEgo, idx),
+          ))
       if self.CP.networkLocation == NetworkLocation.gateway and self.frame % self.params.ADAS_KEEPALIVE_STEP == 0:
         can_sends += gmcan.create_adas_keepalive(CanBus.POWERTRAIN)
 
@@ -138,15 +160,15 @@ class CarController:
       self.cancel_counter = self.cancel_counter + 1 if CC.cruiseControl.cancel else 0
 
       # Stock longitudinal, integrated at camera
-      if (self.frame - self.last_button_frame) * DT_CTRL > 0.04:
-        if self.cancel_counter > CAMERA_CANCEL_DELAY_FRAMES:
-          self.last_button_frame = self.frame
-          can_sends.append(gmcan.create_buttons(self.packer_pt, CanBus.CAMERA, CS.buttons_counter, CruiseButtons.CANCEL))
+      if (
+          self.frame - self.last_button_frame
+      ) * DT_CTRL > 0.04 and self.cancel_counter > CAMERA_CANCEL_DELAY_FRAMES:
+        self.last_button_frame = self.frame
+        can_sends.append(gmcan.create_buttons(self.packer_pt, CanBus.CAMERA, CS.buttons_counter, CruiseButtons.CANCEL))
 
-    if self.CP.networkLocation == NetworkLocation.fwdCamera:
-      # Silence "Take Steering" alert sent by camera, forward PSCMStatus with HandsOffSWlDetectionStatus=1
-      if self.frame % 10 == 0:
-        can_sends.append(gmcan.create_pscm_status(self.packer_pt, CanBus.CAMERA, CS.pscm_status))
+    if (self.CP.networkLocation == NetworkLocation.fwdCamera
+        and self.frame % 10 == 0):
+      can_sends.append(gmcan.create_pscm_status(self.packer_pt, CanBus.CAMERA, CS.pscm_status))
 
     # Show green icon when LKA torque is applied, and
     # alarming orange icon when approaching torque limit.

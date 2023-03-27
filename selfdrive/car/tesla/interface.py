@@ -41,14 +41,13 @@ class CarInterface(CarInterfaceBase):
     ret.steerLimitTimer = 1.0
     ret.steerActuatorDelay = 0.25
 
-    if candidate in (CAR.AP2_MODELS, CAR.AP1_MODELS):
-      ret.mass = 2100. + STD_CARGO_KG
-      ret.wheelbase = 2.959
-      ret.centerToFront = ret.wheelbase * 0.5
-      ret.steerRatio = 15.0
-    else:
+    if candidate not in (CAR.AP2_MODELS, CAR.AP1_MODELS):
       raise ValueError(f"Unsupported car: {candidate}")
 
+    ret.mass = 2100. + STD_CARGO_KG
+    ret.wheelbase = 2.959
+    ret.centerToFront = ret.wheelbase * 0.5
+    ret.steerRatio = 15.0
     return ret
 
   def _update(self, c):

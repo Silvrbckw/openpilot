@@ -120,7 +120,8 @@ def match_fw_to_car_exact(fw_versions_dict) -> Set[str]:
       if ecu_type == Ecu.debug:
         continue
 
-      if not any([found_version in expected_versions for found_version in found_versions]):
+      if all(found_version not in expected_versions
+             for found_version in found_versions):
         invalid.append(candidate)
         break
 
@@ -128,10 +129,7 @@ def match_fw_to_car_exact(fw_versions_dict) -> Set[str]:
 
 
 def match_fw_to_car(fw_versions, allow_exact=True, allow_fuzzy=True):
-  # Try exact matching first
-  exact_matches = []
-  if allow_exact:
-    exact_matches = [(True, match_fw_to_car_exact)]
+  exact_matches = [(True, match_fw_to_car_exact)] if allow_exact else []
   if allow_fuzzy:
     exact_matches.append((False, match_fw_to_car_fuzzy))
 
@@ -169,21 +167,20 @@ def get_present_ecus(logcan, sendcan, num_pandas=1) -> Set[EcuAddrBusType]:
           if sub_addr is None:
             if a not in parallel_queries[r.obd_multiplexing]:
               parallel_queries[r.obd_multiplexing].append(a)
-          else:  # subaddresses must be queried one by one
-            if [a] not in queries[r.obd_multiplexing]:
-              queries[r.obd_multiplexing].append([a])
+          elif [a] not in queries[r.obd_multiplexing]:
+            queries[r.obd_multiplexing].append([a])
 
           # Build set of expected responses to filter
           response_addr = uds.get_rx_addr_for_tx_addr(addr, r.rx_offset)
           responses.add((response_addr, sub_addr, r.bus))
 
-  for obd_multiplexing in queries:
-    queries[obd_multiplexing].insert(0, parallel_queries[obd_multiplexing])
+  for obd_multiplexing, value in queries.items():
+    value.insert(0, parallel_queries[obd_multiplexing])
 
   ecu_responses = set()
-  for obd_multiplexing in queries:
+  for obd_multiplexing, value_ in queries.items():
     set_obd_multiplexing(params, obd_multiplexing)
-    for query in queries[obd_multiplexing]:
+    for query in value_:
       ecu_responses.update(get_ecu_addrs(logcan, sendcan, set(query), responses, timeout=0.1))
   return ecu_responses
 
@@ -194,7 +191,7 @@ def get_brand_ecu_matches(ecu_rx_addrs):
   brand_addrs = get_brand_addrs()
   brand_matches = {brand: set() for brand, _, _ in REQUESTS}
 
-  brand_rx_offsets = set((brand, r.rx_offset) for brand, _, r in REQUESTS)
+  brand_rx_offsets = {(brand, r.rx_offset) for brand, _, r in REQUESTS}
   for addr, sub_addr, _ in ecu_rx_addrs:
     # Since we can't know what request an ecu responded to, add matches for all possible rx offsets
     for brand, rx_offset in brand_rx_offsets:
@@ -261,9 +258,8 @@ def get_fw_versions(logcan, sendcan, query_brand=None, extra=None, timeout=0.1, 
         if sub_addr is None:
           if a not in parallel_addrs:
             parallel_addrs.append(a)
-        else:
-          if [a] not in addrs:
-            addrs.append([a])
+        elif [a] not in addrs:
+          addrs.append([a])
 
   addrs.insert(0, parallel_addrs)
 
@@ -282,10 +278,12 @@ def get_fw_versions(logcan, sendcan, query_brand=None, extra=None, timeout=0.1, 
           set_obd_multiplexing(params, r.obd_multiplexing)
 
         try:
-          addrs = [(a, s) for (b, a, s) in addr_chunk if b in (brand, 'any') and
-                   (len(r.whitelist_ecus) == 0 or ecu_types[(b, a, s)] in r.whitelist_ecus)]
-
-          if addrs:
+          if addrs := [
+              (a, s) for (b, a, s) in addr_chunk
+              if b in (brand,
+                       'any') and (len(r.whitelist_ecus) == 0 or ecu_types[
+                           (b, a, s)] in r.whitelist_ecus)
+          ]:
             query = IsoTpParallelQuery(sendcan, logcan, r.bus, addrs, r.request, r.response, r.rx_offset, debug=debug)
             for (tx_addr, sub_addr), version in query.get_data(timeout).items():
               f = car.CarParams.CarFw.new_message()

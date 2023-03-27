@@ -32,7 +32,7 @@ def register(show_spinner=False) -> Optional[str]:
   dongle_id: Optional[str] = params.get("DongleId", encoding='utf8')
   needs_registration = None in (IMEI, HardwareSerial, dongle_id)
 
-  pubkey = Path(PERSIST+"/comma/id_rsa.pub")
+  pubkey = Path(f"{PERSIST}/comma/id_rsa.pub")
   if not pubkey.is_file():
     dongle_id = UNREGISTERED_DONGLE_ID
     cloudlog.warning(f"missing public key: {pubkey}")
@@ -42,7 +42,7 @@ def register(show_spinner=False) -> Optional[str]:
       spinner.update("registering device")
 
     # Create registration token, in the future, this key will make JWTs directly
-    with open(PERSIST+"/comma/id_rsa.pub") as f1, open(PERSIST+"/comma/id_rsa") as f2:
+    with (open(f"{PERSIST}/comma/id_rsa.pub") as f1, open(f"{PERSIST}/comma/id_rsa") as f2):
       public_key = f1.read()
       private_key = f2.read()
 

@@ -40,10 +40,7 @@ class RunningStat():
     return self.M
 
   def variance(self):
-    if self.n >= 2:
-      return self.S / (self.n - 1.)
-    else:
-      return 0
+    return self.S / (self.n - 1.) if self.n >= 2 else 0
 
   def std(self):
     return np.sqrt(self.variance())
@@ -66,8 +63,6 @@ class RunningStatFilter():
     _delta_std = self.raw_stat.std() - _std_last
     if _delta_std <= 0:
       self.filtered_stat.push_data(new_data)
-    else:
-      pass
       # self.filtered_stat.push_data(self.filtered_stat.mean())
 
 # class SequentialBayesian():

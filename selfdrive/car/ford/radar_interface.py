@@ -89,10 +89,7 @@ class RadarInterface(RadarInterfaceBase):
       cpt = self.rcp.vl[ii]
 
       if cpt['X_Rel'] > 0.00001:
-        self.valid_cnt[ii] = 0    # reset counter
-
-      if cpt['X_Rel'] > 0.00001:
-        self.valid_cnt[ii] += 1
+        self.valid_cnt[ii] = 0 + 1
       else:
         self.valid_cnt[ii] = max(self.valid_cnt[ii] - 1, 0)
       #print ii, self.valid_cnt[ii], cpt['VALID'], cpt['X_Rel'], cpt['Angle']
@@ -109,9 +106,8 @@ class RadarInterface(RadarInterfaceBase):
         self.pts[ii].aRel = float('nan')
         self.pts[ii].yvRel = float('nan')
         self.pts[ii].measured = True
-      else:
-        if ii in self.pts:
-          del self.pts[ii]
+      elif ii in self.pts:
+        del self.pts[ii]
 
   def _update_delphi_mrr(self):
     for ii in range(1, DELPHI_MRR_RADAR_MSG_COUNT + 1):

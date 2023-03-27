@@ -96,12 +96,9 @@ def create_acc_control(packer, CP, enabled, accel_last, accel, stopping, gas_ove
 
 
 def create_spas_messages(packer, frame, left_blink, right_blink):
-  ret = []
-
   values = {
   }
-  ret.append(packer.make_can_msg("SPAS1", 5, values))
-
+  ret = [packer.make_can_msg("SPAS1", 5, values)]
   blink = 0
   if left_blink:
     blink = 3
@@ -116,15 +113,9 @@ def create_spas_messages(packer, frame, left_blink, right_blink):
 
 
 def create_adrv_messages(packer, frame):
-  # messages needed to car happy after disabling
-  # the ADAS Driving ECU to do longitudinal control
-
-  ret = []
-
   values = {
   }
-  ret.append(packer.make_can_msg("ADRV_0x51", 4, values))
-
+  ret = [packer.make_can_msg("ADRV_0x51", 4, values)]
   if frame % 2 == 0:
     values = {
       'AEB_SETTING': 0x1,  # show AEB disabled icon

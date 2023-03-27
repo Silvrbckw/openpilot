@@ -6,16 +6,13 @@ import platform
 from cffi import FFI
 
 def suffix():
-  if platform.system() == "Darwin":
-    return ".dylib"
-  else:
-    return ".so"
+  return ".dylib" if platform.system() == "Darwin" else ".so"
 
 def ffi_wrap(name, c_code, c_header, tmpdir="/tmp/ccache", cflags="", libraries=None):
   if libraries is None:
     libraries = []
 
-  cache = name + "_" + hashlib.sha1(c_code.encode('utf-8')).hexdigest()
+  cache = f"{name}_" + hashlib.sha1(c_code.encode('utf-8')).hexdigest()
   try:
     os.mkdir(tmpdir)
   except OSError:

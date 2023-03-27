@@ -42,7 +42,7 @@ def get_torque_params(candidate):
     override = yaml.load(f, Loader=yaml.CSafeLoader)
 
   # Ensure no overlap
-  if sum([candidate in x for x in [sub, params, override]]) > 1:
+  if sum(candidate in x for x in [sub, params, override]) > 1:
     raise RuntimeError(f'{candidate} is defined twice in torque config')
 
   if candidate in override:
@@ -92,7 +92,7 @@ class CarInterfaceBase(ABC):
     """
     Parameters essential to controlling the car may be incomplete or wrong without FW versions or fingerprints.
     """
-    return cls.get_params(candidate, gen_empty_fingerprint(), list(), False)
+    return cls.get_params(candidate, gen_empty_fingerprint(), [], False)
 
   @classmethod
   def get_params(cls, candidate: str, fingerprint: Dict[int, Dict[int, int]], car_fw: List[car.CarParams.CarFw], experimental_long: bool):
@@ -393,7 +393,10 @@ class CarStateBase(ABC):
     self.left_blinker_prev = left_blinker_stalk
     self.right_blinker_prev = right_blinker_stalk
 
-    return bool(left_blinker_stalk or self.left_blinker_cnt > 0), bool(right_blinker_stalk or self.right_blinker_cnt > 0)
+    return (
+        left_blinker_stalk or self.left_blinker_cnt > 0,
+        right_blinker_stalk or self.right_blinker_cnt > 0,
+    )
 
   @staticmethod
   def parse_gear_shifter(gear: Optional[str]) -> car.CarState.GearShifter:
@@ -437,7 +440,7 @@ def get_interface_attr(attr: str, combine_brands: bool = False, ignore_none: boo
   # - keys are all the car models or brand names
   # - values are attr values from all car folders
   result = {}
-  for car_folder in sorted([x[0] for x in os.walk(BASEDIR + '/selfdrive/car')]):
+  for car_folder in sorted([x[0] for x in os.walk(f'{BASEDIR}/selfdrive/car')]):
     try:
       brand_name = car_folder.split('/')[-1]
       brand_values = __import__(f'selfdrive.car.{brand_name}.values', fromlist=[attr])

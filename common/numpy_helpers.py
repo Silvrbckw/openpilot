@@ -16,7 +16,4 @@ def deep_interp_np(x, xp, fp, axis=None):
   vals_interp = (fp[j].T*(1 - d)).T + (fp[j + 1].T*d).T
   if axis is not None:
     vals_interp = vals_interp.swapaxes(0,axis)
-  if len(vals_interp) == 1:
-    return vals_interp[0]
-  else:
-    return vals_interp
+  return vals_interp[0] if len(vals_interp) == 1 else vals_interp

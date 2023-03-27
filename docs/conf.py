@@ -106,7 +106,7 @@ for root, dirs, files in os.walk(BASEDIR):
   breathe_srcs_list = []
 
   for file in files:
-    ccFile = os.path.join(root, file)[:-2] + ".cc"
+    ccFile = f"{os.path.join(root, file)[:-2]}.cc"
 
     if file.endswith(".h") and exists(ccFile):
       f = os.path.join(root, file)
@@ -121,7 +121,7 @@ for root, dirs, files in os.walk(BASEDIR):
 
     if found:
       breath_src[parent_project] = (parent_dir_abs, breathe_srcs_list)
-      breathe_projects_source.update(breath_src)
+      breathe_projects_source |= breath_src
 
 print(f"breathe_projects_source: {breathe_projects_source.keys()}")
 
